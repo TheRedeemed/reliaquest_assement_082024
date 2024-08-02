@@ -109,8 +109,9 @@ class EmployeeControllerTest extends Specification {
 
         then: 'A response with Http OK status'
         mockMvc.perform(MockMvcRequestBuilders.post('/employees')
+                .contentType(MediaType.APPLICATION_JSON_VALUE)
                 .content(toJsonString(createEmployeeRequest)))
-                .andExpect (MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.status().isCreated())
     }
 
     def 'Delete an employee'() {
@@ -120,7 +121,7 @@ class EmployeeControllerTest extends Specification {
         when(employeeService.deleteEmployeeById('1')).thenReturn('1')
 
         then: 'A response with Http OK status'
-        mockMvc.perform(MockMvcRequestBuilders.delete('/employees'))
+        mockMvc.perform(MockMvcRequestBuilders.delete('/employees/1'))
                 .andExpect (MockMvcResultMatchers.status().isOk())
     }
 
