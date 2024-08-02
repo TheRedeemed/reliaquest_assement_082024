@@ -1,5 +1,7 @@
 package com.example.rqchallenge.employees.mocks
 
+import com.example.rqchallenge.employees.models.Employee
+
 class EmployeeMocks {
     static String getAllEmployeeEmptyResponse() {
         return "{\n" +
@@ -75,6 +77,20 @@ class EmployeeMocks {
                 "\t\"data\": \"25\",\n" +
                 "\t,\"message\":\"Successfully! Record has been deleted.\"\n" +
                 "}"
+    }
+
+    static Employee getEmployeeMock() {
+        return Employee.builder()
+                .employeeName('Joe Tester')
+                .employeeSalary(35000)
+                .employeeAge(35)
+                .build()
+    }
+
+    static List<Employee> getEmployeesListMock() {
+        List<Employee> employees = new ArrayList<>()
+        employees.add(getEmployeeMock())
+        return employees
     }
 
 }

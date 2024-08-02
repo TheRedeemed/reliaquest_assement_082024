@@ -35,6 +35,7 @@ public class EmployeeService {
 
     private final CloseableHttpClient closeableHttpClient;
     private final ObjectMapper objectMapper;
+    private final AppLocalCache appLocalCache;
 
     @Value("${employee.api.url}")
     private String employeeApiUrl;
@@ -77,6 +78,7 @@ public class EmployeeService {
             }
         } else {
             String errorMessage = String.format("An error occurred. Http status: [%s]", statusCode);
+            log.error(errorMessage);
             throw new AllEmployeeLookupException(errorMessage);
         }
     }
@@ -119,6 +121,12 @@ public class EmployeeService {
             throw new EmployeeIdLookupException("Employee Id cannot be blank");
         }
 
+        Employee cachedEmployee = appLocalCache.getFromEmployeeCacheById(employeeId);
+
+        if (cachedEmployee != null) {
+            return cachedEmployee;
+        }
+
         URIBuilder builder = new URIBuilder(employeeApiUrl.concat(EMPLOYEE_PATH).concat("/").concat(employeeId));
         HttpGet getRequest = new HttpGet(builder.build());
 
@@ -151,6 +159,7 @@ public class EmployeeService {
             }
         } else {
             String errorMessage = String.format("An error occurred. Http status: [%s]", statusCode);
+            log.error(errorMessage);
             throw new EmployeeIdLookupException(errorMessage);
         }
     }
@@ -172,13 +181,17 @@ public class EmployeeService {
                 JSONObject jsonResponse = new JSONObject(responseString);
                 JSONObject jsonData = jsonResponse.getJSONObject("data");
 
-                log.info("Employee created successfully - returning response");
-                return Employee.builder()
+                Employee createdEmployee = Employee.builder()
                         .id((jsonData.getInt("id")))
                         .employeeName(jsonData.getString("name"))
                         .employeeSalary(jsonData.getInt("salary"))
                         .employeeAge(jsonData.getInt("age"))
                         .build();
+
+                appLocalCache.addToEmployeeCacheById(String.valueOf(createdEmployee.getId()), createdEmployee);
+
+                log.info("Employee created successfully. Returning response: [{}]", createdEmployee);
+                return createdEmployee;
             } catch (JSONException e) {
                 String errorMessage = e.getMessage();
                 log.error("An error occurred {}", errorMessage);
@@ -186,6 +199,7 @@ public class EmployeeService {
             }
         } else {
             String errorMessage = String.format("An error occurred. Http status: [%s]", statusCode);
+            log.error(errorMessage);
             throw new EmployeeCreationException(errorMessage);
         }
     }
@@ -208,6 +222,8 @@ public class EmployeeService {
             try {
                 JSONObject jsonResponse = new JSONObject(responseString);
 
+                appLocalCache.removeFromEmployeeCacheById(employeeId);
+
                 log.info("Employee deleted successfully - returning response");
                 return jsonResponse.getString("data");
             } catch (JSONException e) {
@@ -217,6 +233,7 @@ public class EmployeeService {
             }
         } else {
             String errorMessage = String.format("An error occurred. Http status: [%s]", statusCode);
+            log.error(errorMessage);
             throw new EmployeeCreationException(errorMessage);
         }
     }

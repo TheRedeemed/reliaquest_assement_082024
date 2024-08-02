@@ -5,6 +5,7 @@ import com.example.rqchallenge.employees.exception.EmployeeCreationException
 import com.example.rqchallenge.employees.exception.EmployeeDeleteException
 import com.example.rqchallenge.employees.exception.EmployeeIdLookupException
 import com.example.rqchallenge.employees.exception.EmployeeNotFoundException
+import com.example.rqchallenge.employees.models.Employee
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.http.StatusLine
 import org.apache.http.client.methods.CloseableHttpResponse
@@ -22,6 +23,7 @@ class EmployeeServiceTest extends Specification {
 
     private CloseableHttpClient closeableHttpClient
     private ObjectMapper objectMapper
+    private AppLocalCache appLocalCache
 
     private CloseableHttpResponse closeableHttpResponse
     private StatusLine statusLine
@@ -32,12 +34,14 @@ class EmployeeServiceTest extends Specification {
     private Map<String, Object> createEmployeeRequest
     private String createEmployeeResponse
     private String deleteEmployeeResponse
+    private Employee mockEmployee
 
     private EmployeeService employeeService
 
     def setup() {
         closeableHttpClient = Mock()
         objectMapper = Mock()
+        appLocalCache = Mock()
         closeableHttpResponse = Mock()
         statusLine = Mock()
 
@@ -48,8 +52,9 @@ class EmployeeServiceTest extends Specification {
         createEmployeeRequest = getEmployeeRequest()
         createEmployeeResponse = getCreateEmployeeResponse()
         deleteEmployeeResponse = getDeleteEmployeeResponse()
+        mockEmployee = getEmployeeMock()
 
-        employeeService = new EmployeeService(closeableHttpClient, objectMapper)
+        employeeService = new EmployeeService(closeableHttpClient, objectMapper, appLocalCache)
         ReflectionTestUtils.setField(employeeService, "employeeApiUrl", "http://some-test-url")
     }
 
@@ -118,8 +123,33 @@ class EmployeeServiceTest extends Specification {
         !response.isEmpty()
     }
 
+    def 'Request to get employee by ID - employee ID is blank'() {
+        given: 'A request to get an employee by ID'
+
+        when: 'The getEmployeeById method is called and the employee ID is blank'
+        employeeService.getEmployeeById('')
+
+        then: 'Except an EmployeeIdLookupException to be thrown'
+        def error = thrown(EmployeeIdLookupException)
+        error.message == 'Employee Id cannot be blank'
+    }
+
+    def 'Request to get employee by ID - employee exist in the cache'() {
+        given: 'A request to get an employee by ID'
+        appLocalCache.getFromEmployeeCacheById(_ as String) >> mockEmployee
+
+        when: 'The getEmployeeById method is called and the employee is the cache'
+        def response = employeeService.getEmployeeById('')
+
+        then: 'Except the employee to be returned from the cache'
+        response.employeeName == 'Joe Tester'
+        response.employeeSalary == 35000
+        response.employeeAge == 35
+    }
+
     def 'Request to get employee by ID - status code is not 200 '() {
         given: 'A request to get an employee by ID'
+        appLocalCache.getFromEmployeeCacheById(_ as String) >> null
         closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
         closeableHttpResponse.getStatusLine() >> statusLine
         statusLine.getStatusCode() >> 500
@@ -134,6 +164,7 @@ class EmployeeServiceTest extends Specification {
 
     def 'Request to get employee by ID - JSON Error'() {
         given: 'A request to get an employee by ID'
+        appLocalCache.getFromEmployeeCacheById(_ as String) >> null
         closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
         closeableHttpResponse.getStatusLine() >> statusLine
         statusLine.getStatusCode() >> 200
@@ -151,6 +182,7 @@ class EmployeeServiceTest extends Specification {
 
     def 'Request to get employee by ID - No employee found by ID'() {
         given: 'A request to get an employee by ID'
+        appLocalCache.getFromEmployeeCacheById(_ as String) >> null
         closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
         closeableHttpResponse.getStatusLine() >> statusLine
         statusLine.getStatusCode() >> 200
@@ -168,6 +200,7 @@ class EmployeeServiceTest extends Specification {
 
     def 'Request to get employee by ID - employee found by ID'() {
         given: 'A request to get an employee by ID'
+        appLocalCache.getFromEmployeeCacheById(_ as String) >> null
         closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
         closeableHttpResponse.getStatusLine() >> statusLine
         statusLine.getStatusCode() >> 200
@@ -224,6 +257,7 @@ class EmployeeServiceTest extends Specification {
         InputStream inputStream = new ByteArrayInputStream(createEmployeeResponse.getBytes())
         httpEntity.setContent(inputStream)
         closeableHttpResponse.getEntity() >> httpEntity
+        appLocalCache.addToEmployeeCacheById(_ as String, _ as Employee)
 
         when: 'The createEmployee method is called and the user is created successfully'
         def response = employeeService.createEmployee(createEmployeeRequest)
@@ -285,6 +319,7 @@ class EmployeeServiceTest extends Specification {
         InputStream inputStream = new ByteArrayInputStream(deleteEmployeeResponse.getBytes())
         httpEntity.setContent(inputStream)
         closeableHttpResponse.getEntity() >> httpEntity
+        appLocalCache.removeFromEmployeeCacheById(_ as String)
 
         when: 'The deleteEmployeeById method is called and the employee ID is blank'
         def response = employeeService.deleteEmployeeById("25")
