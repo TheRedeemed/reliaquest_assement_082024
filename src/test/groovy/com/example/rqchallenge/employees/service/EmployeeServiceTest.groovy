@@ -32,6 +32,7 @@ class EmployeeServiceTest extends Specification {
     private String noEmployeeByIdFoundResponse
     private String employeeByIdFoundResponse
     private Map<String, Object> createEmployeeRequest
+    private String createEmployeeRequestString
     private String createEmployeeResponse
     private String deleteEmployeeResponse
     private Employee mockEmployee
@@ -50,12 +51,13 @@ class EmployeeServiceTest extends Specification {
         noEmployeeByIdFoundResponse = getEmployeeByIdNotFound()
         employeeByIdFoundResponse = getEmployeeByIdFound()
         createEmployeeRequest = getEmployeeRequest()
+        createEmployeeRequestString = getCreateEmployeeRequestString()
         createEmployeeResponse = getCreateEmployeeResponse()
         deleteEmployeeResponse = getDeleteEmployeeResponse()
         mockEmployee = getEmployeeMock()
 
         employeeService = new EmployeeService(closeableHttpClient, objectMapper, appLocalCache)
-        ReflectionTestUtils.setField(employeeService, "employeeApiUrl", "http://some-test-url")
+        ReflectionTestUtils.setField(employeeService, "employeeApiUrl", "http://some-test-url", String.class)
     }
 
     def 'Request to get all employees - status code is not 200'() {
@@ -123,6 +125,76 @@ class EmployeeServiceTest extends Specification {
         !response.isEmpty()
     }
 
+    def 'Request to search employee by name'() {
+        given: 'A request to search an employee by name'
+        closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
+        closeableHttpResponse.getStatusLine() >> statusLine
+        statusLine.getStatusCode() >> 200
+        BasicHttpEntity httpEntity = new BasicHttpEntity()
+        InputStream inputStream = new ByteArrayInputStream(employeesFoundResponse.getBytes())
+        httpEntity.setContent(inputStream)
+        closeableHttpResponse.getEntity() >> httpEntity
+
+        when: 'The getEmployeesByName method is called'
+        def response =employeeService.getEmployeesByName('Tiger')
+
+        then: 'Except an empty with matching name to be returned'
+        def employee = response.get(0)
+        employee.employeeName == 'Tiger Nixon'
+    }
+
+    def 'Request to get highest salary'() {
+        given: 'A request to get highest salary'
+        closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
+        closeableHttpResponse.getStatusLine() >> statusLine
+        statusLine.getStatusCode() >> 200
+        BasicHttpEntity httpEntity = new BasicHttpEntity()
+        InputStream inputStream = new ByteArrayInputStream(employeesFoundResponse.getBytes())
+        httpEntity.setContent(inputStream)
+        closeableHttpResponse.getEntity() >> httpEntity
+
+        when: 'The getHighestSalaryOfEmployees method is called'
+        def response = employeeService.getHighestSalaryOfEmployees()
+
+        then: 'Except the highest salary to be returned'
+        response == 320800
+    }
+
+    def 'Request to get highest salary - no Employee found'() {
+        given: 'A request to get highest salary'
+        closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
+        closeableHttpResponse.getStatusLine() >> statusLine
+        statusLine.getStatusCode() >> 200
+        BasicHttpEntity httpEntity = new BasicHttpEntity()
+        InputStream inputStream = new ByteArrayInputStream(noEmployeesFoundResponse.getBytes())
+        httpEntity.setContent(inputStream)
+        closeableHttpResponse.getEntity() >> httpEntity
+
+        when: 'The getHighestSalaryOfEmployees method is called and no employee is found'
+        employeeService.getHighestSalaryOfEmployees()
+
+        then: 'Except an EmployeeNotFoundException to be thrown'
+        def error = thrown(EmployeeNotFoundException)
+        error.message == 'No Employee with max Salary'
+    }
+
+    def 'Request to get the top ten highest earning employee'() {
+        given: 'A request to get the top ten highest earning employee'
+        closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
+        closeableHttpResponse.getStatusLine() >> statusLine
+        statusLine.getStatusCode() >> 200
+        BasicHttpEntity httpEntity = new BasicHttpEntity()
+        InputStream inputStream = new ByteArrayInputStream(employeesFoundResponse.getBytes())
+        httpEntity.setContent(inputStream)
+        closeableHttpResponse.getEntity() >> httpEntity
+
+        when: 'The getTopTenHighestEarningEmployeeNames method is called and employee is found'
+        def response = employeeService.getTopTenHighestEarningEmployeeNames()
+
+        then: 'Except a list with the top ten to be returned'
+        response.size() > 0
+    }
+
     def 'Request to get employee by ID - employee ID is blank'() {
         given: 'A request to get an employee by ID'
 
@@ -139,9 +211,12 @@ class EmployeeServiceTest extends Specification {
         appLocalCache.getFromEmployeeCacheById(_ as String) >> mockEmployee
 
         when: 'The getEmployeeById method is called and the employee is the cache'
-        def response = employeeService.getEmployeeById('')
+        def response = employeeService.getEmployeeById('1')
 
         then: 'Except the employee to be returned from the cache'
+        0 * closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
+        0 * closeableHttpResponse.getStatusLine() >> statusLine
+        0 * statusLine.getStatusCode() >> 200
         response.employeeName == 'Joe Tester'
         response.employeeSalary == 35000
         response.employeeAge == 35
@@ -219,6 +294,7 @@ class EmployeeServiceTest extends Specification {
 
     def 'Request to create an employee - status code is not 200'() {
         given: 'A request to create an employee'
+        objectMapper.writeValueAsString(_ as Map<String, Object>) >>createEmployeeRequestString
         closeableHttpClient.execute(_ as HttpPost) >> closeableHttpResponse
         closeableHttpResponse.getStatusLine() >> statusLine
         statusLine.getStatusCode() >> 500
@@ -233,6 +309,7 @@ class EmployeeServiceTest extends Specification {
 
     def 'Request to create an employee - JSON Error'() {
         given: 'A request to create an employee'
+        objectMapper.writeValueAsString(_ as Map<String, Object>) >>createEmployeeRequestString
         closeableHttpClient.execute(_ as HttpPost) >> closeableHttpResponse
         closeableHttpResponse.getStatusLine() >> statusLine
         statusLine.getStatusCode() >> 200
@@ -250,6 +327,7 @@ class EmployeeServiceTest extends Specification {
 
     def 'Request to create an employee'() {
         given: 'A request to create an employee'
+        objectMapper.writeValueAsString(_ as Map<String, Object>) >>createEmployeeRequestString
         closeableHttpClient.execute(_ as HttpPost) >> closeableHttpResponse
         closeableHttpResponse.getStatusLine() >> statusLine
         statusLine.getStatusCode() >> 200
@@ -257,12 +335,12 @@ class EmployeeServiceTest extends Specification {
         InputStream inputStream = new ByteArrayInputStream(createEmployeeResponse.getBytes())
         httpEntity.setContent(inputStream)
         closeableHttpResponse.getEntity() >> httpEntity
-        appLocalCache.addToEmployeeCacheById(_ as String, _ as Employee)
 
         when: 'The createEmployee method is called and the user is created successfully'
         def response = employeeService.createEmployee(createEmployeeRequest)
 
         then: 'Expect a response to be returned'
+        1 * appLocalCache.addToEmployeeCacheById(_ as String, _ as Employee)
         response.employeeName == 'Joe Tester'
         response.employeeSalary == 35000
         response.employeeAge == 35
@@ -286,7 +364,7 @@ class EmployeeServiceTest extends Specification {
         statusLine.getStatusCode() >> 500
 
         when: 'The deleteEmployeeById method is called and the employee ID is blank'
-        employeeService.deleteEmployeeById("")
+        employeeService.deleteEmployeeById("1")
 
         then: 'Expect an EmployeeDeleteException to be thrown'
         def error = thrown(EmployeeDeleteException)
@@ -310,7 +388,7 @@ class EmployeeServiceTest extends Specification {
         thrown(EmployeeDeleteException)
     }
 
-    def 'Request to delete an employee - status code is not 200'() {
+    def 'Request to delete an employee - status code is 200'() {
         given: 'A request to delete an employee'
         closeableHttpClient.execute(_ as HttpDelete) >> closeableHttpResponse
         closeableHttpResponse.getStatusLine() >> statusLine
@@ -326,40 +404,5 @@ class EmployeeServiceTest extends Specification {
 
         then: 'Expect an EmployeeDeleteException to be thrown'
         response == '25'
-    }
-
-    def 'Request to get with employee with highest salary - EmployeeNotFoundException'() {
-        given: 'A request to get employee with highest salary'
-        closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
-        closeableHttpResponse.getStatusLine() >> statusLine
-        statusLine.getStatusCode() >> 200
-        BasicHttpEntity httpEntity = new BasicHttpEntity()
-        InputStream inputStream = new ByteArrayInputStream(noEmployeesFoundResponse.getBytes())
-        httpEntity.setContent(inputStream)
-        closeableHttpResponse.getEntity() >> httpEntity
-
-        when: 'The getHighestSalaryOfEmployees method is called and the list of employee is empty'
-        employeeService.getHighestSalaryOfEmployees()
-
-        then: 'Except an EmployeeNotFoundException to be thrown'
-        def error = thrown(EmployeeNotFoundException)
-        error.message == 'No Employee with max Salary'
-    }
-
-    def 'Request to get with employee with highest salary'() {
-        given: 'A request to get employee with highest salary'
-        closeableHttpClient.execute(_ as HttpGet) >> closeableHttpResponse
-        closeableHttpResponse.getStatusLine() >> statusLine
-        statusLine.getStatusCode() >> 200
-        BasicHttpEntity httpEntity = new BasicHttpEntity()
-        InputStream inputStream = new ByteArrayInputStream(employeesFoundResponse.getBytes())
-        httpEntity.setContent(inputStream)
-        closeableHttpResponse.getEntity() >> httpEntity
-
-        when: 'The getHighestSalaryOfEmployees method is called and the list of employee is not empty'
-        def response = employeeService.getHighestSalaryOfEmployees()
-
-        then: 'Except the highest salary to be returned'
-        response == 320800
     }
 }

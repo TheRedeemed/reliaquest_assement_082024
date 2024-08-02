@@ -57,6 +57,14 @@ class EmployeeMocks {
         return reqObj
     }
 
+    static String getCreateEmployeeRequestString() {
+        return "{\n" +
+                "    \"name\" : \"Joe Tester\",\n" +
+                "    \"salary\": 35000,\n" +
+                "    \"age\": 35\n" +
+                "}"
+    }
+
     static String getCreateEmployeeResponse() {
         return "{\n" +
                 "\t\"status\":\"success\",\n" +
@@ -75,7 +83,7 @@ class EmployeeMocks {
         return "{\n" +
                 "\t\"status\":\"success\",\n" +
                 "\t\"data\": \"25\",\n" +
-                "\t,\"message\":\"Successfully! Record has been deleted.\"\n" +
+                "\t\"message\":\"Successfully! Record has been deleted.\"\n" +
                 "}"
     }
 

@@ -15,6 +15,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers
 import org.springframework.test.web.servlet.setup.MockMvcBuilders
 import org.springframework.web.context.WebApplicationContext
 import org.springframework.web.servlet.config.annotation.EnableWebMvc
+import spock.lang.Specification
 
 import static com.example.rqchallenge.employees.mocks.EmployeeMocks.getEmployeeMock
 import static com.example.rqchallenge.employees.mocks.EmployeeMocks.getEmployeeRequest
@@ -25,7 +26,7 @@ import static org.mockito.Mockito.when
 @ActiveProfiles("test")
 @SpringBootTest(classes = EmployeeController.class)
 @EnableWebMvc
-class EmployeeControllerTest {
+class EmployeeControllerTest extends Specification {
 
     @Autowired
     private WebApplicationContext webApplicationContext
@@ -93,7 +94,7 @@ class EmployeeControllerTest {
         given: 'A request to get the top ten employees with highest salary'
 
         when: 'The get to top ten highest salary employees endpoint is called'
-        when(employeeService.getTop10HighestEarningEmployeeNames()).thenReturn(List.of('Joe Tester'))
+        when(employeeService.getTopTenHighestEarningEmployeeNames()).thenReturn(List.of('Joe Tester'))
 
         then: 'A response with Http OK status'
         mockMvc.perform(MockMvcRequestBuilders.get('/employees/top-ten-highest-earning-employee-names'))

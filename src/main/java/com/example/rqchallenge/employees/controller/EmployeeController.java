@@ -85,7 +85,7 @@ public class EmployeeController implements IEmployeeController {
     @Override
     @GetMapping("/top-ten-highest-earning-employee-names")
     public ResponseEntity<List<String>> getTopTenHighestEarningEmployeeNames() throws URISyntaxException, IOException {
-        return new ResponseEntity<>(employeeService.getTop10HighestEarningEmployeeNames(), HttpStatus.OK);
+        return new ResponseEntity<>(employeeService.getTopTenHighestEarningEmployeeNames(), HttpStatus.OK);
     }
 
     /**

@@ -48,9 +48,9 @@ public class EmployeeService {
         log.info("Sending request to get all employees");
         HttpResponse response = closeableHttpClient.execute(getRequest);
         int statusCode = response.getStatusLine().getStatusCode();
-        String responseString = EntityUtils.toString(response.getEntity());
 
         if (statusCode == HttpStatus.OK.value()) {
+            String responseString = EntityUtils.toString(response.getEntity());
             try {
                 JSONObject jsonResponse = new JSONObject(responseString);
                 JSONArray jsonArray = jsonResponse.getJSONArray("data");
@@ -70,6 +70,7 @@ public class EmployeeService {
                         employeesData.add(employee);
                     }
                 }
+                log.info("Returning list of employees {}", employeesData);
                 return employeesData;
             } catch (JSONException e) {
                 String errorMessage = e.getMessage();
@@ -85,6 +86,7 @@ public class EmployeeService {
 
     public List<Employee> getEmployeesByName(String name) throws URISyntaxException, IOException {
         List<Employee> employees = getAllEmployees();
+        log.info("Returning list of employees whose name contains or matches: {}", name);
         return employees.stream()
                 .filter(employee -> employee.getEmployeeName().contains(name))
                 .toList();
@@ -106,9 +108,10 @@ public class EmployeeService {
         }
     }
 
-    public List<String> getTop10HighestEarningEmployeeNames() throws URISyntaxException, IOException {
+    public List<String> getTopTenHighestEarningEmployeeNames() throws URISyntaxException, IOException {
         List<Employee> employees = getAllEmployees();
 
+        log.info("Returning list of top ten highest earning employees");
         return employees.stream()
                 .sorted(Comparator.comparing(Employee::getEmployeeSalary).reversed())
                 .limit(10)
@@ -118,6 +121,7 @@ public class EmployeeService {
     public Employee getEmployeeById(String employeeId) throws URISyntaxException, IOException {
 
         if (StringUtils.isBlank(employeeId)) {
+            log.error("Employee Id cannot be blank");
             throw new EmployeeIdLookupException("Employee Id cannot be blank");
         }
 
@@ -133,18 +137,20 @@ public class EmployeeService {
         log.info("Sending request to get employee by id {}", employeeId);
         HttpResponse response = closeableHttpClient.execute(getRequest);
         int statusCode = response.getStatusLine().getStatusCode();
-        String responseString = EntityUtils.toString(response.getEntity());
 
         if (statusCode == HttpStatus.OK.value()) {
+            String responseString = EntityUtils.toString(response.getEntity());
             try {
                 JSONObject jsonResponse = new JSONObject(responseString);
-                JSONObject jsonData = jsonResponse.getJSONObject("data");
 
-                if(jsonData.isNull("id")) {
+                if(jsonResponse.toMap().get("data") == null) {
                     log.error("Employee with ID {} was not found", employeeId);
                     throw new EmployeeNotFoundException(String.format("Employee with ID %s was not found", employeeId));
                 }
 
+                JSONObject jsonData = jsonResponse.getJSONObject("data");
+
+                log.info("Returning employee for ID {}", employeeId);
                 return Employee.builder()
                         .id((jsonData.getInt("id")))
                         .employeeName(jsonData.getString("employee_name"))
@@ -174,9 +180,9 @@ public class EmployeeService {
         log.info("Sending request to create employee");
         HttpResponse response = closeableHttpClient.execute(postRequest);
         int statusCode = response.getStatusLine().getStatusCode();
-        String responseString = EntityUtils.toString(response.getEntity());
 
         if (statusCode == HttpStatus.OK.value()) {
+            String responseString = EntityUtils.toString(response.getEntity());
             try {
                 JSONObject jsonResponse = new JSONObject(responseString);
                 JSONObject jsonData = jsonResponse.getJSONObject("data");
@@ -216,9 +222,9 @@ public class EmployeeService {
         log.info("Sending request to delete employee id {}", employeeId);
         HttpResponse response = closeableHttpClient.execute(deleteRequest);
         int statusCode = response.getStatusLine().getStatusCode();
-        String responseString = EntityUtils.toString(response.getEntity());
 
         if (statusCode == HttpStatus.OK.value()) {
+            String responseString = EntityUtils.toString(response.getEntity());
             try {
                 JSONObject jsonResponse = new JSONObject(responseString);
 
@@ -229,12 +235,12 @@ public class EmployeeService {
             } catch (JSONException e) {
                 String errorMessage = e.getMessage();
                 log.error("An error occurred {}", errorMessage);
-                throw new EmployeeCreationException(errorMessage);
+                throw new EmployeeDeleteException(errorMessage);
             }
         } else {
             String errorMessage = String.format("An error occurred. Http status: [%s]", statusCode);
             log.error(errorMessage);
-            throw new EmployeeCreationException(errorMessage);
+            throw new EmployeeDeleteException(errorMessage);
         }
     }
 
