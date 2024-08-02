@@ -64,7 +64,7 @@ class EmployeeControllerTest extends Specification {
         when(employeeService.getEmployeesByName(any())).thenReturn(employeeList)
 
         then: 'A response with Http OK status'
-        mockMvc.perform(MockMvcRequestBuilders.get('/employees/joe'))
+        mockMvc.perform(MockMvcRequestBuilders.get('/employees/search/joe'))
                 .andExpect (MockMvcResultMatchers.status().isOk())
     }
 
@@ -86,7 +86,7 @@ class EmployeeControllerTest extends Specification {
         when(employeeService.getHighestSalaryOfEmployees()).thenReturn(35000)
 
         then: 'A response with Http OK status'
-        mockMvc.perform(MockMvcRequestBuilders.get('/employees/highest-salary'))
+        mockMvc.perform(MockMvcRequestBuilders.get('/employees/highestSalary'))
                 .andExpect (MockMvcResultMatchers.status().isOk())
     }
 
@@ -97,7 +97,7 @@ class EmployeeControllerTest extends Specification {
         when(employeeService.getTopTenHighestEarningEmployeeNames()).thenReturn(List.of('Joe Tester'))
 
         then: 'A response with Http OK status'
-        mockMvc.perform(MockMvcRequestBuilders.get('/employees/top-ten-highest-earning-employee-names'))
+        mockMvc.perform(MockMvcRequestBuilders.get('/employees/topTenHighestEarningEmployeeNames'))
                 .andExpect (MockMvcResultMatchers.status().isOk())
     }
 

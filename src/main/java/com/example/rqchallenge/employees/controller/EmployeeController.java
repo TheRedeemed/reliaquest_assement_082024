@@ -27,7 +27,6 @@ public class EmployeeController implements IEmployeeController {
      * @throws URISyntaxException URISyntaxException
      */
     @Override
-    @GetMapping()
     public ResponseEntity<List<Employee>> getAllEmployees() throws IOException, URISyntaxException {
         return ResponseEntity.ok(employeeService.getAllEmployees());
     }
@@ -41,7 +40,6 @@ public class EmployeeController implements IEmployeeController {
      * @throws IOException IOException
      */
     @Override
-    @GetMapping("/search/{searchString}")
     public ResponseEntity<List<Employee>> getEmployeesByNameSearch(@PathVariable String searchString)
             throws URISyntaxException, IOException {
         return ResponseEntity.ok(employeeService.getEmployeesByName(searchString));
@@ -57,7 +55,6 @@ public class EmployeeController implements IEmployeeController {
      * @throws IOException IOException
      */
     @Override
-    @GetMapping("/{id}")
     public ResponseEntity<Employee> getEmployeeById(@PathVariable String id) throws URISyntaxException, IOException {
         return ResponseEntity.ok(employeeService.getEmployeeById(id));
     }
@@ -70,7 +67,6 @@ public class EmployeeController implements IEmployeeController {
      * @throws IOException IOException
      */
     @Override
-    @GetMapping("/highest-salary")
     public ResponseEntity<Integer> getHighestSalaryOfEmployees() throws URISyntaxException, IOException {
         return ResponseEntity.ok(employeeService.getHighestSalaryOfEmployees());
     }
@@ -83,7 +79,6 @@ public class EmployeeController implements IEmployeeController {
      * @throws IOException IOException
      */
     @Override
-    @GetMapping("/top-ten-highest-earning-employee-names")
     public ResponseEntity<List<String>> getTopTenHighestEarningEmployeeNames() throws URISyntaxException, IOException {
         return new ResponseEntity<>(employeeService.getTopTenHighestEarningEmployeeNames(), HttpStatus.OK);
     }
@@ -97,7 +92,6 @@ public class EmployeeController implements IEmployeeController {
      * @throws IOException IOException
      */
     @Override
-    @PostMapping
     public ResponseEntity<Employee> createEmployee(Map<String, Object> employeeInput) throws URISyntaxException, IOException {
         return new ResponseEntity<>(employeeService.createEmployee(employeeInput), HttpStatus.CREATED);
     }
@@ -111,7 +105,6 @@ public class EmployeeController implements IEmployeeController {
      * @throws IOException IOException
      */
     @Override
-    @DeleteMapping("/{id}")
     public ResponseEntity<String> deleteEmployeeById(String id) throws URISyntaxException, IOException {
         return new ResponseEntity<>(employeeService.deleteEmployeeById(id), HttpStatus.OK);
     }
